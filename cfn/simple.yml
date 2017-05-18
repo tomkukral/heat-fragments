@@ -235,7 +235,7 @@ Resources:
               - "wget -O /tmp/saltmaster_install.sh https://github.com/tomkukral/heat-fragments/raw/cfn/script/saltmaster_install.sh"
               - "chmod +x /tmp/instance_boot.sh"
               - "chmod +x /tmp/saltmaster_install.sh"
-              - "# Set variables"
+              - "# Set AWS variables"
               - "export aws_instance_id=$(curl http://169.254.169.254/latest/meta-data/instance-id)"
               - "export aws_resource='SaltMasterInstance'"
               - !Join
@@ -252,10 +252,10 @@ Resources:
               - "export node_os='xenial'"
               - !Join
                 - ''
-                - - export node_hostname=\"
+                - - export node_hostname="
                   - ctl-
                   - "${aws_instance_id}"
-                  - \"
+                  - "\""
               - !Join
                 - ''
                 - - export node_domain='
@@ -267,8 +267,9 @@ Resources:
                 - - export node_cluster='
                   - !Ref NodeCluster
                   - "'"
+              - "# Set variables"
               - export config_host='127.0.0.1'
-              - "export instance_cloud_init=date"
+              - export instance_cloud_init="$(cat /tmp/saltmaster_install.sh)"
               - "env"
               - "/tmp/instance_boot.sh"
 
