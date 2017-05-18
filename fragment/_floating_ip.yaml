@@ -1,0 +1,25 @@
+heat_template_version: 2015-04-30
+
+description: Floating IP fragment
+
+parameters:
+  public_net:
+    type: string
+    description: ID or name of public network for which floating IP address will be allocated.
+  instance:
+    type: string
+
+resources:
+  floating_ip:
+    type: OS::Nova::FloatingIP
+    properties:
+      pool: { get_param: public_net }
+  floating_ip_association:
+    type: OS::Nova::FloatingIPAssociation
+    properties:
+      floating_ip: { get_resource: floating_ip }
+      server_id: { get_param: instance }
+
+outputs:
+  floating_ip:
+    value: { get_attr: [floating_ip, ip] }

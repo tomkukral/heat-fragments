@@ -1,0 +1,84 @@
+heat_template_version: 2015-04-30
+
+parameters:
+
+  cluster_public_key:
+    type: string
+  cluster_public_net:
+    type: string
+    description: ID or name of public network
+  cluster_zone:
+    type: string
+    default: nova
+  cluster_name:
+    type: string
+    default: salt-single
+  cluster_domain:
+    type: string
+  cluster_nameservers:
+    type: comma_delimited_list
+    description: DNS nameservers to be assigned to nodes
+
+  cfg_reclass_address:
+    type: string
+    default: https://git.com/salt-models/model.git
+  cfg_reclass_branch:
+    type: string
+    default: master
+  cfg_reclass_key:
+    type: string
+    hidden: true
+    default: ""
+  cfg_formula_branch:
+    type: string
+    default: master
+
+resources:
+  mcp_network:
+    type: MCP::Network
+    properties:
+      stack_name: { get_param: "OS::stack_name" }
+      key_value: { get_param: cluster_public_key }
+      public_net: { get_param: cluster_public_net }
+      nameservers: { get_param: cluster_nameservers }
+  mcp_salt_master:
+    type: MCP::SingleInstance
+    depends_on: mcp_network
+    properties:
+      key_pair: { get_param: "OS::stack_name" }
+      network: { get_attr: [mcp_network, network] }
+      security_group: { get_attr: [mcp_network, security_group] }
+      instance_name: cfg01
+      instance_domain:
+        list_join:
+        - '.'
+        - [ { get_param: "OS::stack_name" }, { get_param: cluster_domain } ]
+      instance_cluster: { get_param: cluster_name }
+      instance_zone: { get_param: cluster_zone }
+      instance_os: xenial
+      instance_image: ubuntu-16-04-amd64-cloudimg
+      instance_flavor: m1.large20
+      instance_config_host: 127.0.0.1
+      instance_cloud_init:
+        str_replace:
+          template: { get_file: ../script/saltmaster_install.sh }
+          params:
+            $cluster_name: { get_param: cluster_name }
+            $node_hostname: cfg01
+            $node_domain:
+              list_join:
+              - '.'
+              - [ { get_param: "OS::stack_name" }, { get_param: cluster_domain } ]
+            $private_key: { get_param: cfg_reclass_key }
+            $reclass_address : { get_param: cfg_reclass_address }
+            $reclass_branch : { get_param: cfg_reclass_branch }
+  mcp_salt_master_ip:
+    type: MCP::FloatingIp
+    properties:
+      public_net: { get_param: cluster_public_net }
+      instance: { get_attr: [mcp_salt_master, instance] }
+
+outputs:
+  salt_master_ip:
+    value: { get_attr: [mcp_salt_master, config_public] }
+    description: "Public IP address of the Salt master node"
