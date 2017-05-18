@@ -109,9 +109,8 @@ service salt-minion restart || wait_condition_send "FAILURE" "Failed to restart 
 if [ -z "$aws_instance_id" ]; then
 $instance_cloud_init
 else
-	cloud_init_file="$(mktemp)"
-	chmod +x "$cloud_init_file"
-	$cloud_init_file
+	# AWS
+	eval "$instance_cloud_init"
 fi
 
 sleep 1
