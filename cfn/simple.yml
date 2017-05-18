@@ -273,16 +273,16 @@ Resources:
               - "env"
               - "/tmp/instance_boot.sh"
 
-              - !Join
-                - ' '
-                - - "cfn-signal -s true --resource SaltMasterInstance"
-                  - '--stack'
-                  - !Ref 'AWS::StackName'
-                  - '--region'
-                  - !Ref 'AWS::Region'
+              #- !Join
+              #  - ' '
+              #  - - "cfn-signal -s true --resource SaltMasterInstance"
+              #    - '--stack'
+              #    - !Ref 'AWS::StackName'
+              #    - '--region'
+              #    - !Ref 'AWS::Region'
     CreationPolicy:
           ResourceSignal:
-            Timeout: PT10M
+            Timeout: PT30M
 
   # Minion nodes
   NodeLaunchConfig:

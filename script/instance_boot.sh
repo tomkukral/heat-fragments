@@ -33,7 +33,7 @@ function wait_condition_send() {
 	else
 		aws_status="false"
 	fi
-	cnf-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
+	cfn-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
   else
   	# Heat
   	$wait_condition_notify -k --data-binary "$data_binary"
