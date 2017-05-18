@@ -1,14 +1,28 @@
+# Required variables:
+#	nodes_os - operating system (centos7, trusty, xenial)
+#	node_hostname - hostname of this node (mynode)
+#	node_domain - domainname of this node (mydomain)
+#	node_cluster - clustername, used to classify this node (virtual_mcp11_k8s)
+#	config_host - IP/hostname of salt-master (192.168.0.1)
+#
+#	private_key - SSH private key, used to clone reclass model
+#	reclass_address - address of reclass model (https://github.com/user/repo.git)
+#	reclass_branch - branch of reclass model (master)
 
 echo "Installing salt master ..."
 aptget_wrapper install -y reclass git
 aptget_wrapper install -y salt-master
 
 [ ! -d /root/.ssh ] && mkdir -p /root/.ssh
+
+if [ "$private_key" != "" ]; then
 cat << 'EOF' > /root/.ssh/id_rsa
 $private_key
 EOF
 chmod 400 /root/.ssh/id_rsa
+fi
 
+[ ! -d /etc/salt/master.d ] && mkdir -p /etc/salt/master.d
 cat << 'EOF' > /etc/salt/master.d/master.conf
 file_roots:
   base:
