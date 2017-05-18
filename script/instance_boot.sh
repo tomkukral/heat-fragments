@@ -102,11 +102,17 @@ esac
 
 echo "Configuring Salt minion ..."
 [ ! -d /etc/salt/minion.d ] && mkdir -p /etc/salt/minion.d
-echo "id: $node_hostname.$node_domain\nmaster: $config_host" > /etc/salt/minion.d/minion.conf
+echo -e "id: $node_hostname.$node_domain\nmaster: $config_host" > /etc/salt/minion.d/minion.conf
 
 service salt-minion restart || wait_condition_send "FAILURE" "Failed to restart salt-minion service."
 
+if [ -z "$aws_instance_id" ]; then
 $instance_cloud_init
+else
+	cloud_init_file="$(mktemp)"
+	chmod +x "$cloud_init_file"
+	$cloud_init_file
+fi
 
 sleep 1
 
