@@ -1,4 +1,12 @@
 #!/bin/bash
+
+# Required variables:
+#	nodes_os - operating system (centos7, trusty, xenial)
+#	node_hostname - hostname of this node (mynode)
+#	node_domain - domainname of this node (mydomain)
+#	node_cluster - clustername (used to classify this node)
+#	config_host - IP/hostname of salt-master
+
 # Redirect all outputs
 exec > >(tee -i /tmp/cloud-init-bootstrap.log) 2>&1
 set -xe
@@ -87,6 +95,6 @@ sleep 1
 
 echo "Classifying node ..."
 node_ip=$(ip a | awk -F '[ \t\n]+|/' '($2 == "inet")  {print $3}' | grep -m 1 -v '127.0.0.1')
-salt-call event.send 'reclass/minion/classify' "{'node_master_ip': '$config_host', 'node_ip': '${node_ip}', 'node_domain': '$node_domain', 'node_cluster': '$cluster_name', 'node_hostname': '$node_hostname', 'node_os': '$node_os'}"
+salt-call event.send 'reclass/minion/classify' "{'node_master_ip': '$config_host', 'node_ip': '${node_ip}', 'node_domain': '$node_domain', 'node_cluster': '$node_cluster', 'node_hostname': '$node_hostname', 'node_os': '$node_os'}"
 
 wait_condition_send "SUCCESS" "Instance successfuly started."
