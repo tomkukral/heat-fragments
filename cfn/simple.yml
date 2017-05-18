@@ -247,7 +247,6 @@ Resources:
                 - ''
                 - - export aws_stack='
                   - !Ref 'AWS::StackName'
-                  - .local
                   - "'"
               - "export node_os='xenial'"
               - !Join
@@ -282,7 +281,7 @@ Resources:
               #    - !Ref 'AWS::Region'
     CreationPolicy:
           ResourceSignal:
-            Timeout: PT30M
+            Timeout: PT10M
 
   # Minion nodes
   NodeLaunchConfig:

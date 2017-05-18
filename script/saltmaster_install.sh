@@ -16,10 +16,8 @@ aptget_wrapper install -y salt-master
 [ ! -d /root/.ssh ] && mkdir -p /root/.ssh
 
 if [ "$private_key" != "" ]; then
-cat << 'EOF' > /root/.ssh/id_rsa
-$private_key
-EOF
-chmod 400 /root/.ssh/id_rsa
+	echo "$private_key" > /root/.ssh/id_rsa
+	chmod 400 /root/.ssh/id_rsa
 fi
 
 [ ! -d /etc/salt/master.d ] && mkdir -p /etc/salt/master.d
@@ -41,6 +39,7 @@ EOF
 echo "Configuring reclass ..."
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts || wait_condition_send "FAILURE" "Failed to scan github.com key."
 git clone -b $reclass_branch --recurse-submodules $reclass_address /srv/salt/reclass || wait_condition_send "ERROR: failed to clone reclass"
+
 mkdir -p /srv/salt/reclass/classes/service
 
 mkdir -p /srv/salt/reclass/nodes/_generated
