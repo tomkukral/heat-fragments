@@ -2,6 +2,12 @@ AWSTemplateFormatVersion: 2010-09-09
 Description: >-
   Kubernetes on AWS with support of MCP ecosystem
 Parameters:
+  NodeCluster:
+    Description: Reclass model to use
+    Type: String
+    Default: virtual-mcp11-k8s-calico-dyn
+    AllowedValues:
+      - virtual-mcp11-k8s-calico-dyn
   SaltMasterInstanceType:
     Description: SaltMaster EC2 instance type
     Type: String
@@ -163,7 +169,7 @@ Resources:
       Egress: 'true'
       CidrBlock: 0.0.0.0/0
       PortRange:
-        From: '1024'
+        From: '1'
         To: '65535'
   SubnetNetworkAclAssociation:
     Type: 'AWS::EC2::SubnetNetworkAclAssociation'
@@ -220,9 +226,52 @@ Resources:
           Fn::Join:
             - "\n"
             - - "#!/bin/bash -xe"
+              - "# Install cfn-signal"
               - "apt-get update"
               - "apt-get install -y python-pip"
               - "pip install https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz"
+              - "# Download Heat templates"
+              - "wget -O /tmp/instance_boot.sh https://github.com/tomkukral/heat-fragments/raw/cfn/script/instance_boot.sh"
+              - "wget -O /tmp/saltmaster_install.sh https://github.com/tomkukral/heat-fragments/raw/cfn/script/saltmaster_install.sh"
+              - "chmod +x /tmp/instance_boot.sh"
+              - "chmod +x /tmp/saltmaster_install.sh"
+              - "# Set variables"
+              - "export aws_instance_id=$(curl http://169.254.169.254/latest/meta-data/instance-id)"
+              - "export aws_resource='SaltMasterInstance'"
+              - !Join
+                - ''
+                - - export aws_region='
+                  - !Ref 'AWS::Region'
+                  - "'"
+              - !Join
+                - ''
+                - - export aws_stack='
+                  - !Ref 'AWS::StackName'
+                  - .local
+                  - "'"
+              - "export node_os='xenial'"
+              - !Join
+                - ''
+                - - export node_hostname=\"
+                  - ctl-
+                  - "${aws_instance_id}"
+                  - \"
+              - !Join
+                - ''
+                - - export node_domain='
+                  - !Ref 'AWS::StackName'
+                  - .local
+                  - "'"
+              - !Join
+                - ''
+                - - export node_cluster='
+                  - !Ref NodeCluster
+                  - "'"
+              - export config_host='127.0.0.1'
+              - "export instance_cloud_init=date"
+              - "env"
+              - "/tmp/instance_boot.sh"
+
               - !Join
                 - ' '
                 - - "cfn-signal -s true --resource SaltMasterInstance"
@@ -244,18 +293,7 @@ Resources:
         - image
       InstanceType: !Ref SaltMasterInstanceType
       KeyName: !Ref KeyName
-      AssociatePublicIpAddress: 'false'
-      #Tags:
-      #  - Key: Application
-      #    Value: !Ref 'AWS::StackId'
-      #  - Key: Name
-      #    Value: !Join [ '-', [ !Ref 'AWS::StackName', 'SaltMaster' ] ]
-      #NetworkInterfaces:
-      #  - GroupSet:
-      #      - !Ref InstanceSecurityGroup
-      #    DeviceIndex: '0'
-      #    DeleteOnTermination: 'true'
-      #    SubnetId: !Ref Subnet
+      AssociatePublicIpAddress: 'true'
       UserData:
         Fn::Base64:
           Fn::Join:
@@ -271,18 +309,60 @@ Resources:
                   - !Ref 'AWS::StackName'
                   - '--region'
                   - !Ref 'AWS::Region'
+              - "# Download Heat templates"
+              - "wget -O /tmp/instance_boot.sh https://github.com/cznewt/heat-fragments/raw/master/script/instance_boot.sh"
+              - "wget -O /tmp/saltmaster_install.sh https://github.com/cznewt/heat-fragments/raw/master/script/saltmaster_install.sh"
+              - "chmod +x /tmp/instance_boot.sh"
+              - "chmod +x /tmp/saltmaster_install.sh"
+              - "# Set variables"
+              - "export node_os='xenial'"
+              - !Join
+                - ''
+                - - export node_hostname='
+                  - ctl01
+                  - "'"
+              - !Join
+                - ''
+                - - export node_domain='
+                  - !Ref 'AWS::StackName'
+                  - .local
+                  - "'"
+              - !Join
+                - ''
+                - - export node_cluster='
+                  - !Ref NodeCluster
+                  - "'"
+              - !Join
+                - ''
+                - - export config_host='
+                  - !GetAtt
+                    - SaltMasterInstance
+                    - PrivateIp
+                  - "'"
+              - "export instance_cloud_init=date"
+              - "env"
+              - "/tmp/instance_boot.sh"
 
-  SaltMinionsScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    DependsOn: SaltMasterInstance
-    Properties:
-      AvailabilityZones:
-        Fn::GetAZs:
-          Ref: AWS::Region
-      LaunchConfigurationName:
-        Ref: NodeLaunchConfig
-      MinSize: '1'
-      MaxSize: '10'
+  #SaltMinionsScalingGroup:
+  #  Type: AWS::AutoScaling::AutoScalingGroup
+  #  DependsOn: SaltMasterInstance
+  #  Properties:
+  #    VPCZoneIdentifier:
+  #      - !Ref Subnet
+  #    LaunchConfigurationName:
+  #      Ref: NodeLaunchConfig
+  #    MinSize: '1'
+  #    MaxSize: '10'
+  #    Tags:
+  #      - Key: Application
+  #        PropagateAtLaunch: 'true'
+  #        Value: !Ref 'AWS::StackId'
+  #      - Key: Name
+  #        PropagateAtLaunch: 'true'
+  #        Value: !Join
+  #          - '-'
+  #          - - !Ref 'AWS::StackName'
+  #            - minion
 
 Outputs:
   SaltMasterIP:

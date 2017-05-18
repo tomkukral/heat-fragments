@@ -6,6 +6,7 @@
 #	node_domain - domainname of this node (mydomain)
 #	node_cluster - clustername (used to classify this node)
 #	config_host - IP/hostname of salt-master
+#	instance_cloud_init - cloud-init script for instance 
 
 # Redirect all outputs
 exec > >(tee -i /tmp/cloud-init-bootstrap.log) 2>&1
@@ -15,13 +16,33 @@ set -xe
 # param:
 #   $1 - status to send ("FAILURE" or "SUCCESS"
 #   $2 - msg
+#
+#   AWS parameters:
+#	aws_resource
+#	aws_stack
+#	aws_region
 function wait_condition_send() {
   local status=${1:-SUCCESS}
   local reason=${2:-empty}
   local data_binary="{\"status\": \"$status\", \"reason\": \"$reason\"}"
   echo "Sending signal to wait condition: $data_binary"
-  $wait_condition_notify -k --data-binary "$data_binary"
-  exit 1
+  if [ -z "$wait_condition_notify" ]; then
+  	# AWS
+	if [ "status" == "SUCCESS" ]; then
+		aws_status="true"
+	else
+		aws_status="false"
+	fi
+
+	cnf-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
+
+  else
+  	# Heat
+  	$wait_condition_notify -k --data-binary "$data_binary"
+
+  if [ "$status" == "FAILURE" ]; then
+	  exit 1
+  fi
 }
 
 # Add wrapper to apt-get to avoid race conditions
@@ -82,10 +103,7 @@ esac
 
 echo "Configuring Salt minion ..."
 [ ! -d /etc/salt/minion.d ] && mkdir -p /etc/salt/minion.d
-cat << "EOF" > /etc/salt/minion.d/minion.conf
-id: $node_hostname.$node_domain
-master: $config_host
-EOF
+echo "id: $node_hostname.$node_domain\nmaster: $config_host" > /etc/salt/minion.d/minion.conf
 
 service salt-minion restart || wait_condition_send "FAILURE" "Failed to restart salt-minion service."
 
