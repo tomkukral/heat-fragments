@@ -1,0 +1,89 @@
+heat_template_version: 2015-10-15
+
+description: Member of autoscaling cluster fragment
+
+parameters:
+  key_pair:
+    type: string
+  network:
+    type: string
+  security_group:
+    type: string
+  instance_name:
+    type: string
+  instance_domain:
+    type: string
+  instance_cluster:
+    type: string
+  instance_zone:
+    type: string
+  instance_os:
+    type: string
+  instance_flavor:
+    type: string
+  instance_image:
+    type: string
+  instance_config_host:
+    type: string
+  instance_cloud_init:
+    type: string
+    default: ""
+  instance_lb:
+    type: string
+  instance_metadata:
+    type: string
+
+resources:
+  instance_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net }
+      fixed_ips:
+        - ip_address: { get_param: instance_address }
+      allowed_address_pairs:
+        - ip_address: { get_param: instance_vip_address }
+      security_groups:
+        - default
+        - { get_param: security_group }
+  instance_wait_handle:
+    type: OS::Heat::WaitConditionHandle
+  instance_wait_condition:
+    type: OS::Heat::WaitCondition
+    properties:
+      handle: {get_resource: instance_wait_handle}
+      timeout: 3600
+  instance_instance:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: instance_image }
+      image_update_policy: REBUILD
+      flavor: { get_param: instance_flavor }
+      name:
+        list_join:
+        - '.'
+        - [ { get_param: instance_name }, { get_param: instance_domain } ]
+      availability_zone: { get_param: instance_zone }
+      key_name: { get_param: key_pair }
+      networks:
+      - network: { get_param: admin_net }
+      - port: { get_resource: instance_port }
+      user_data_format: RAW
+      user_data:
+        str_replace:
+          template: { get_file: ../script/instance_boot.sh }
+          params:
+            $node_os: { get_param: instance_os }
+            $node_hostname: { get_param: instance_name }
+            $node_domain: { get_param: instance_domain }
+            $cluster_name: { get_param: instance_cluster }
+            $config_host: { get_param: config_host }
+            $instance_cloud_init: { get_param: instance_cloud_init }
+            $wait_condition_notify: { get_attr: [instance_wait_handle, curl_cli] }
+
+outputs:
+  instance_address:
+    value: { get_attr: [instance_instance, first_address] }
+    description: "Instance's private IP address"
+  instance:
+    value: { get_resource: instance_instance }
+    description: "Instance"

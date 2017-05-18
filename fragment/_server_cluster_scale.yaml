@@ -1,0 +1,115 @@
+heat_template_version: 2015-10-15
+
+description: Autoscaling server cluster (M-N nodes) fragment
+
+parameters:
+  key_pair:
+    type: string
+  network:
+    type: string
+  security_group:
+    type: string
+  instance_name:
+    type: string
+  instance_domain:
+    type: string
+  instance_cluster:
+    type: string
+  instance_zone:
+    type: string
+  instance_os:
+    type: string
+  instance_flavor:
+    type: string
+  instance_image:
+    type: string
+  instance_config_host:
+    type: string
+  instance_cloud_init:
+    type: string
+    default: ""
+
+resources:
+  server_scaling_group:
+    type: OS::Heat::AutoScalingGroup
+    properties:
+      min_size: 1
+      max_size: 5
+      resource:
+        type: MCP::ScaleClusterMember
+        properties:
+          key_pair: { get_param: key_pair }
+          network: { get_param: network }
+          security_group: { get_param: security_group }
+          instance_name: { get_param: instance_name }
+          instance_domain: { get_param: instance_domain }
+          instance_cluster: { get_param: instance_cluster }
+          instance_zone:  { get_param: instance_zone }
+          instance_os: { get_param: instance_os }
+          instance_flavor: { get_param: instance_flavor }
+          instance_image: { get_param: instance_image }
+          instance_config_host: { get_param: instance_config_host }
+          instance_cloud_init: { get_param: instance_cloud_init }
+          instance_lb: { get_resource: load_balancer_pool }
+          instance_metadata: { "metering.stack": { get_param: "OS::stack_id"} }
+  cluster_scaleup_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: { get_resource: cluster_scaling_group }
+      cooldown: 60
+      scaling_adjustment: 1
+  cluster_scaledown_policy:
+    type: OS::Heat::ScalingPolicy
+    properties:
+      adjustment_type: change_in_capacity
+      auto_scaling_group_id: { get_resource: cluster_scaling_group }
+      cooldown: 60
+      scaling_adjustment: -1
+  cpu_alarm_high:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-up if the average CPU > 50% for 1 minute
+      meter_name: cpu_util
+      statistic: avg
+      period: 120
+      evaluation_periods: 1
+      threshold: 50
+      alarm_actions:
+        - { get_attr: [cluster_scaleup_policy, alarm_url] }
+      matching_metadata: { 'metadata.user_metadata.stack': {get_param: "OS::stack_id"} }
+      comparison_operator: gt
+  cpu_alarm_low:
+    type: OS::Ceilometer::Alarm
+    properties:
+      description: Scale-down if the average CPU < 15% for 10 minutes
+      meter_name: cpu_util
+      statistic: avg
+      period: 120
+      evaluation_periods: 1
+      threshold: 15
+      alarm_actions:
+        - { get_attr: [cluster_scaledown_policy, alarm_url] }
+      matching_metadata: { 'metadata.user_metadata.stack': {get_param: "OS::stack_id"} }
+      comparison_operator: lt
+  monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+  load_balancer_pool:
+    type: OS::Neutron::Pool
+    properties:
+      protocol: HTTP
+      monitors: [{ get_resource: monitor }]
+      subnet_id: { get_resource: vip_subnet }
+      lb_method: ROUND_ROBIN
+      vip:
+        protocol_port: 80
+  load_balancer:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: 80
+      pool_id: { get_resource: load_balancer_pool }
