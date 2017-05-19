@@ -8,6 +8,7 @@
 #	private_key - SSH private key, used to clone reclass model
 #	reclass_address - address of reclass model (https://github.com/user/repo.git)
 #	reclass_branch - branch of reclass model (master)
+#	formula_source - source for salt-formulas (pkg or git)
 
 echo "Installing salt master ..."
 aptget_wrapper install -y reclass git
@@ -78,13 +79,34 @@ aptget_wrapper update
 declare -a formula_services=("linux" "reclass" "salt" "openssh" "ntp" "git" "nginx" "collectd" "sensu" "heka" "sphinx" "keystone" "mysql" "grafana" "haproxy" "rsyslog" "horizon" "telegraf" "prometheus")
 
 echo -e "\nInstalling all required salt formulas\n"
-aptget_wrapper install -y "${formula_services[@]/#/salt-formula-}"
 
-for formula_service in "${formula_services[@]}"; do
-    echo -e "\nLink service metadata for formula ${formula_service} ...\n"
-    [ ! -L "/srv/salt/reclass/classes/service/${formula_service}" ] && \
-        ln -s ${FORMULA_PATH}/reclass/service/${formula_service} /srv/salt/reclass/classes/service/${formula_service}
-done
+if [ "$formula_source" == "git" ]; then
+	# install formulas from git
+	for formula_service in "${formula_services[@]}"; do
+		git clone https://github.com/salt-formulas/salt-formula-${formula_service}.git ${FORMULA_PATH}/env/_formulas/${formula_service}/
+
+		echo -e "\nLink service metadata for formula ${formula_service} ...\n"
+		[ ! -L "/srv/salt/reclass/classes/service/${formula_service}" ] && \
+			ln -sv ${FORMULA_PATH}/reclass/service/${formula_service} /srv/salt/reclass/classes/service/${formula_service}
+
+		[ ! -L "${FORMULA_PATH}/env/${formula_service}" ] && \
+			ln -sv ${FORMULA_PATH}/env/_formulas/${formula_service}/${formula_service} ${FORMULA_PATH}/env/${formula_service}
+		[ ! -L "/srv/salt/reclass/classes/service/${formula_service}" ] && \
+			ln -sv ${FORMULA_PATH}/env/_formulas/${formula_service}/metadata/service /srv/salt/reclass/classes/service/${formula_service}
+
+	done
+else
+	# install formualas form pkg
+	aptget_wrapper install -y "${formula_services[@]/#/salt-formula-}"
+
+	for formula_service in "${formula_services[@]}"; do
+	    echo -e "\nLink service metadata for formula ${formula_service} ...\n"
+	    [ ! -L "/srv/salt/reclass/classes/service/${formula_service}" ] && \
+		ln -s ${FORMULA_PATH}/reclass/service/${formula_service} /srv/salt/reclass/classes/service/${formula_service}
+	done
+
+
+fi
 
 [ ! -d /srv/salt/env ] && mkdir -p /srv/salt/env
 [ ! -L /srv/salt/env/prd ] && ln -s ${FORMULA_PATH}/env /srv/salt/env/prd
