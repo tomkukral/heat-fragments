@@ -6,3 +6,6 @@ List keys
 
 Create stack
 	aws --profile mi cloudformation create-stack --stack-name test-$(date +"%Y-%m-%d-%H-%M-%S") --template-body file://simple.yml --parameters ParameterKey=KeyName,ParameterValue=tkukral_yubi
+
+Get stack info
+	aws --profile mi cloudformation describe-stacks --stack-name test-2017-05-22-14-24-26

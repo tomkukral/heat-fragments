@@ -12,6 +12,9 @@
 exec > >(tee -i /tmp/cloud-init-bootstrap.log) 2>&1
 set -xe
 
+echo "Environment variables:"
+env
+
 # Send signal to heat wait condition
 # param:
 #   $1 - status to send ("FAILURE" or "SUCCESS"
@@ -28,12 +31,13 @@ function wait_condition_send() {
   echo "Sending signal to wait condition: $data_binary"
   if [ -z "$wait_condition_notify" ]; then
   	# AWS
-	if [ "status" == "SUCCESS" ]; then
+	if [ "$status" == "SUCCESS" ]; then
 		aws_status="true"
 		cfn-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
 	else
 		aws_status="false"
 		echo cfn-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
+		exit 1
 	fi
   else
   	# Heat

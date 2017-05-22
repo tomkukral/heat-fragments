@@ -9,7 +9,8 @@
 #	reclass_address - address of reclass model (https://github.com/user/repo.git)
 #	reclass_branch - branch of reclass model (master)
 
-
+echo "Environment variables:"
+env
 
 echo "Installing salt master ..."
 aptget_wrapper install -y reclass git
@@ -23,7 +24,7 @@ fi
 
 [ ! -d /etc/salt/master.d ] && mkdir -p /etc/salt/master.d
 
-echo -n "file_roots:
+echo "file_roots:
   base:
   - /usr/share/salt-formulas/env
 pillar_opts: False
@@ -36,7 +37,7 @@ ext_pillar:
 master_tops:
   reclass: *reclass" | tee /etc/salt/master.d/master.conf
 
-echo "Configuring reclass ..."
+echo "Clone reclass from $reclass_address:$reclass_branch"
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts || wait_condition_send "FAILURE" "Failed to scan github.com key."
 git clone -b $reclass_branch --recurse-submodules $reclass_address /srv/salt/reclass || wait_condition_send "ERROR: failed to clone reclass"
 
@@ -44,14 +45,14 @@ mkdir -p /srv/salt/reclass/classes/service
 
 mkdir -p /srv/salt/reclass/nodes/_generated
 
-echo -n "classes:
-- cluster.$cluster_name.infra.config
+echo "classes:
+- cluster.$node_cluster.infra.config
 parameters:
   _param:
     linux_system_codename: xenial
     reclass_data_revision: $reclass_branch
     reclass_data_repository: $reclass_address
-    cluster_name: $cluster_name
+    cluster_name: $node_cluster
     cluster_domain: $node_domain
   linux:
     system:
@@ -88,7 +89,8 @@ done
 [ ! -L /srv/salt/env/prd ] && ln -s ${FORMULA_PATH}/env /srv/salt/env/prd
 
 [ ! -d /etc/reclass ] && mkdir /etc/reclass
-echo -n "storage_type: yaml_fs
+echo "
+storage_type: yaml_fs
 pretty_print: True
 output: yaml
 inventory_base_uri: /srv/salt/reclass" > /etc/reclass/reclass-config.yml
