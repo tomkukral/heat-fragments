@@ -34,7 +34,7 @@ reclass: &reclass
 ext_pillar:
   - reclass: *reclass
 master_tops:
-  reclass: *reclass" > /etc/salt/master.d/master.conf
+  reclass: *reclass" | tee /etc/salt/master.d/master.conf
 
 echo "Configuring reclass ..."
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts || wait_condition_send "FAILURE" "Failed to scan github.com key."
@@ -56,7 +56,7 @@ parameters:
   linux:
     system:
       name: $node_hostname
-      domain: $node_domain" > /srv/salt/reclass/nodes/_generated/$node_hostname.$node_domain.yml
+      domain: $node_domain" | tee /srv/salt/reclass/nodes/_generated/$node_hostname.$node_domain.yml
 
 FORMULA_PATH=${FORMULA_PATH:-/usr/share/salt-formulas}
 FORMULA_REPOSITORY=${FORMULA_REPOSITORY:-deb [arch=amd64] http://apt-mk.mirantis.com/xenial testing salt}
