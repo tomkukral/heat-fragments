@@ -9,6 +9,8 @@
 #	reclass_address - address of reclass model (https://github.com/user/repo.git)
 #	reclass_branch - branch of reclass model (master)
 
+
+
 echo "Installing salt master ..."
 aptget_wrapper install -y reclass git
 aptget_wrapper install -y salt-master
@@ -20,8 +22,8 @@ if [ "$private_key" != "" ]; then
 fi
 
 [ ! -d /etc/salt/master.d ] && mkdir -p /etc/salt/master.d
-cat << 'EOF' > /etc/salt/master.d/master.conf
-file_roots:
+
+echo -n "file_roots:
   base:
   - /usr/share/salt-formulas/env
 pillar_opts: False
@@ -32,8 +34,7 @@ reclass: &reclass
 ext_pillar:
   - reclass: *reclass
 master_tops:
-  reclass: *reclass
-EOF
+  reclass: *reclass" > /etc/salt/master.d/master.conf
 
 echo "Configuring reclass ..."
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts || wait_condition_send "FAILURE" "Failed to scan github.com key."
@@ -43,8 +44,7 @@ mkdir -p /srv/salt/reclass/classes/service
 
 mkdir -p /srv/salt/reclass/nodes/_generated
 
-cat << 'EOF' > /srv/salt/reclass/nodes/_generated/$node_hostname.$node_domain.yml
-classes:
+echo -n "classes:
 - cluster.$cluster_name.infra.config
 parameters:
   _param:
@@ -56,8 +56,7 @@ parameters:
   linux:
     system:
       name: $node_hostname
-      domain: $node_domain
-EOF
+      domain: $node_domain" > /srv/salt/reclass/nodes/_generated/$node_hostname.$node_domain.yml
 
 FORMULA_PATH=${FORMULA_PATH:-/usr/share/salt-formulas}
 FORMULA_REPOSITORY=${FORMULA_REPOSITORY:-deb [arch=amd64] http://apt-mk.mirantis.com/xenial testing salt}
@@ -89,17 +88,15 @@ done
 [ ! -L /srv/salt/env/prd ] && ln -s ${FORMULA_PATH}/env /srv/salt/env/prd
 
 [ ! -d /etc/reclass ] && mkdir /etc/reclass
-cat << 'EOF' > /etc/reclass/reclass-config.yml
-storage_type: yaml_fs
+echo -n "storage_type: yaml_fs
 pretty_print: True
 output: yaml
-inventory_base_uri: /srv/salt/reclass
-EOF
+inventory_base_uri: /srv/salt/reclass" > /etc/reclass/reclass-config.yml
 
 echo "Restarting salt-master service ..."
 systemctl restart salt-master || wait_condition_send "FAILURE" "Failed to restart salt-master service."
 
-echo "Running the resto of states ..."
+echo "Running the rest of states ..."
 run_states=("linux,openssh" "reclass" "salt.master.service" "salt")
 for state in "${run_states[@]}"
 do
