@@ -60,6 +60,8 @@ Resources:
       Tags:
         - Key: Application
           Value: !Ref 'AWS::StackId'
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
   Subnet:
     Type: 'AWS::EC2::Subnet'
     Properties:
@@ -347,6 +349,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     DependsOn: AttachGateway
     Properties:
+      SourceDestCheck: 'false'
       NetworkInterfaces:
         - GroupSet:
             - !Ref InstanceSecurityGroup
@@ -435,6 +438,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     DependsOn: AttachGateway
     Properties:
+      SourceDestCheck: 'false'
       NetworkInterfaces:
         - GroupSet:
             - !Ref InstanceSecurityGroup
@@ -523,6 +527,7 @@ Resources:
     Type: 'AWS::EC2::Instance'
     DependsOn: AttachGateway
     Properties:
+      SourceDestCheck: 'false'
       NetworkInterfaces:
         - GroupSet:
             - !Ref InstanceSecurityGroup
@@ -606,7 +611,7 @@ Resources:
     CreationPolicy:
           ResourceSignal:
             Timeout: PT10M
-   # Compute nodes
+  # Compute nodes
   ComputeLaunchConfig:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
     Properties:
@@ -617,6 +622,7 @@ Resources:
       InstanceType: !Ref SaltMasterInstanceType
       KeyName: !Ref KeyName
       AssociatePublicIpAddress: 'true'
+      SourceDestCheck: 'false'
       SecurityGroups:
         - !Ref InstanceSecurityGroup
       UserData:
