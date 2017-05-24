@@ -455,7 +455,7 @@ Resources:
         - Key: Name
           Value: !Join
             - '.'
-            - - 'ctl01'
+            - - 'ctl02'
               - !Join
                 - '-'
                 - - !Ref 'AWS::StackName'
@@ -543,7 +543,7 @@ Resources:
         - Key: Name
           Value: !Join
             - '.'
-            - - 'ctl01'
+            - - 'ctl03'
               - !Join
                 - '-'
                 - - !Ref 'AWS::StackName'
