@@ -52,6 +52,8 @@ Mappings:
       image: ami-f1d7c395
     us-west-1:
       image: ami-2afbde4a
+    us-west-2:
+      image: ami-efd0428f
 Resources:
   VPC:
     Type: 'AWS::EC2::VPC'
@@ -622,7 +624,6 @@ Resources:
       InstanceType: !Ref SaltMasterInstanceType
       KeyName: !Ref KeyName
       AssociatePublicIpAddress: 'true'
-      SourceDestCheck: 'false'
       SecurityGroups:
         - !Ref InstanceSecurityGroup
       UserData:
@@ -681,27 +682,27 @@ Resources:
               - export instance_cloud_init="date"
               - "env"
               - "/tmp/instance_boot.sh"
-  ComputesScalingGroup:
-    Type: AWS::AutoScaling::AutoScalingGroup
-    DependsOn: SaltMasterInstance
-    Properties:
-      VPCZoneIdentifier:
-        - !Ref Subnet
-      LaunchConfigurationName:
-        Ref: ComputeLaunchConfig
-      MinSize: '1'
-      MaxSize: '10'
-      Tags:
-        - Key: Application
-          PropagateAtLaunch: 'true'
-          Value: !Ref 'AWS::StackId'
-        - Key: Name
-          PropagateAtLaunch: 'true'
-          Value: !Join
-            - '-'
-            - - compute
-              - !Ref 'AWS::StackName'
-              - minion
+#  ComputesScalingGroup:
+#    Type: AWS::AutoScaling::AutoScalingGroup
+#    DependsOn: SaltMasterInstance
+#    Properties:
+#      VPCZoneIdentifier:
+#        - !Ref Subnet
+#      LaunchConfigurationName:
+#        Ref: ComputeLaunchConfig
+#      MinSize: '1'
+#      MaxSize: '10'
+#      Tags:
+#        - Key: Application
+#          PropagateAtLaunch: 'true'
+#          Value: !Ref 'AWS::StackId'
+#        - Key: Name
+#          PropagateAtLaunch: 'true'
+#          Value: !Join
+#            - '-'
+#            - - compute
+#              - !Ref 'AWS::StackName'
+#              - minion
 Outputs:
   SaltMasterIP:
     Value: !Ref SaltMasterEIP
