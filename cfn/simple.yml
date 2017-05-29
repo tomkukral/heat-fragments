@@ -470,7 +470,7 @@ Resources:
                   - "'"
               - !Join
                 - ''
-                - - export _param_kubernetes_control_address='
+                - - export param_kubernetes_control_address='
                   - !GetAtt
                       - ControlLoadBalancer
                       - DNSName

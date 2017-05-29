@@ -122,6 +122,6 @@ sleep 1
 
 echo "Classifying node ..."
 node_ip=$(ip a | awk -F '[ \t\n]+|/' '($2 == "inet")  {print $3}' | grep -m 1 -v '127.0.0.1')
-salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_ip\": \"${node_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$node_cluster\", \"node_hostname\": \"$node_hostname\", \"param_kubernetes_control_address\": \"$_param_kubernetes_control_address\"}"
+salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_ip\": \"${node_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$node_cluster\", \"node_hostname\": \"$node_hostname\", \"param_kubernetes_control_address\": \"$param_kubernetes_control_address\"}"
 
 wait_condition_send "SUCCESS" "Instance successfuly started."
