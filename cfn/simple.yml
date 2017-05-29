@@ -256,7 +256,7 @@ Resources:
         - IpProtocol: '-1'
           CidrIp: 0.0.0.0/0
 
-  ControlLoadBalander:
+  ControlLoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
     Properties:
       Subnets:
