@@ -122,11 +122,23 @@ Resources:
       PortRange:
         From: '80'
         To: '80'
-  InboundSSHNetworkAclEntry:
+  InboundHTTPSNetworkAclEntry:
     Type: 'AWS::EC2::NetworkAclEntry'
     Properties:
       NetworkAclId: !Ref NetworkAcl
       RuleNumber: '101'
+      Protocol: '6'
+      RuleAction: allow
+      Egress: 'false'
+      CidrBlock: 0.0.0.0/0
+      PortRange:
+        From: '443'
+        To: '443'
+  InboundSSHNetworkAclEntry:
+    Type: 'AWS::EC2::NetworkAclEntry'
+    Properties:
+      NetworkAclId: !Ref NetworkAcl
+      RuleNumber: '102'
       Protocol: '6'
       RuleAction: allow
       Egress: 'false'
@@ -138,7 +150,7 @@ Resources:
     Type: 'AWS::EC2::NetworkAclEntry'
     Properties:
       NetworkAclId: !Ref NetworkAcl
-      RuleNumber: '102'
+      RuleNumber: '103'
       Protocol: '6'
       RuleAction: allow
       Egress: 'false'
@@ -150,7 +162,7 @@ Resources:
     Type: 'AWS::EC2::NetworkAclEntry'
     Properties:
       NetworkAclId: !Ref NetworkAcl
-      RuleNumber: '103'
+      RuleNumber: '104'
       Protocol: '17'
       RuleAction: allow
       Egress: 'false'
@@ -162,7 +174,7 @@ Resources:
     Type: 'AWS::EC2::NetworkAclEntry'
     Properties:
       NetworkAclId: !Ref NetworkAcl
-      RuleNumber: '104'
+      RuleNumber: '105'
       Protocol: '1'
       RuleAction: allow
       Egress: 'false'
@@ -243,6 +255,33 @@ Resources:
           CidrIp: 0.0.0.0/0
         - IpProtocol: '-1'
           CidrIp: 0.0.0.0/0
+
+  ControlLoadBalander:
+    Type: AWS::ElasticLoadBalancing::LoadBalancer
+    Properties:
+      Subnets:
+        - !Ref Subnet
+      Instances:
+        - Ref: Ctl01Instance
+        - Ref: Ctl02Instance
+        - Ref: Ctl03Instance
+      Listeners:
+      - LoadBalancerPort: '443'
+        InstancePort: '443'
+        Protocol: TCP
+      HealthCheck:
+        Target: 'TCP:443'
+        HealthyThreshold: '10'
+        UnhealthyThreshold: '2'
+        Interval: '30'
+        Timeout: '5'
+      Tags:
+        - Key: Name
+          Value: !Join
+            - '-'
+            - - ctl
+              - !Ref 'AWS::StackName'
+
   # SaltMaster
   SaltMasterEIP:
     Type: 'AWS::EC2::EIP'
@@ -428,6 +467,13 @@ Resources:
                   - !GetAtt
                     - SaltMasterInstance
                     - PrivateIp
+                  - "'"
+              - !Join
+                - ''
+                - - export _param_kubernetes_control_address='
+                  - !GetAtt
+                      - ControlLoadBalancer
+                      - DNSName
                   - "'"
               - export instance_cloud_init="date"
               - "env"
@@ -711,3 +757,8 @@ Outputs:
     Value: !GetAtt
       - SaltMasterInstance
       - PrivateIp
+  ControlLoadBalancer:
+    Value: !GetAtt
+      - ControlLoadBalancer
+      - DNSName
+
