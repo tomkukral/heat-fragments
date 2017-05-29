@@ -258,13 +258,14 @@ Resources:
 
   ControlLoadBalancer:
     Type: AWS::ElasticLoadBalancing::LoadBalancer
+    DependsOn: AttachGateway
     Properties:
       Subnets:
         - !Ref Subnet
-      Instances:
-        - Ref: Ctl01Instance
-        - Ref: Ctl02Instance
-        - Ref: Ctl03Instance
+      #Instances:
+      #  - Ref: Ctl01Instance
+      #  - Ref: Ctl02Instance
+      #  - Ref: Ctl03Instance
       Listeners:
       - LoadBalancerPort: '443'
         InstancePort: '443'
@@ -276,7 +277,7 @@ Resources:
         Interval: '30'
         Timeout: '5'
       Tags:
-        - Key: Name
+        - Key: Stack
           Value: !Join
             - '-'
             - - ctl
@@ -490,7 +491,7 @@ Resources:
       NetworkInterfaces:
         - GroupSet:
             - !Ref InstanceSecurityGroup
-          AssociatePublicIpAddress: 'true'
+          #AssociatePublicIpAddress: 'true'
           DeviceIndex: '0'
           DeleteOnTermination: 'true'
           SubnetId: !Ref Subnet
@@ -579,7 +580,7 @@ Resources:
       NetworkInterfaces:
         - GroupSet:
             - !Ref InstanceSecurityGroup
-          AssociatePublicIpAddress: 'true'
+          #AssociatePublicIpAddress: 'true'
           DeviceIndex: '0'
           DeleteOnTermination: 'true'
           SubnetId: !Ref Subnet
