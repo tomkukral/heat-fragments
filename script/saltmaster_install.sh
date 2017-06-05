@@ -107,3 +107,6 @@ done
 
 echo "Showing known models ..."
 reclass-salt --top || wait_condition_send "FAILURE" "Reclass-salt command run failed."
+
+echo "Give some time for salt-master to breath again"
+sleep 15
