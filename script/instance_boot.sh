@@ -121,7 +121,15 @@ fi
 sleep 1
 
 echo "Classifying node ..."
-node_ip=$(ip a | awk -F '[ \t\n]+|/' '($2 == "inet")  {print $3}' | grep -m 1 -v '127.0.0.1')
-salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_os\": \"${node_os}\", \"node_ip\": \"${node_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$node_cluster\", \"node_hostname\": \"$node_hostname\"}"
+node_ip="$(ip a | awk -F '[ \t\n]+|/' '($2 == "inet")  {print $3}' | grep -m 1 -v '127.0.0.1')"
+
+# find more parameters (every env starting param_)
+more_params=$(env | grep "^param_" | sed -e 's/=/":"/g' -e 's/^/"/g' -e 's/$/",/g' | tr "\n" " " | sed 's/, $//g')
+if [ "$more_params" != "" ]; then
+	echo "Additional params: $more_params"
+	more_params=", $more_params"
+fi
+
+echo salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_os\": \"${node_os}\", \"node_ip\": \"${node_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$node_cluster\", \"node_hostname\": \"$node_hostname\"${more_params}}"
 
 wait_condition_send "SUCCESS" "Instance successfuly started."
