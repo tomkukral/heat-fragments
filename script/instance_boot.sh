@@ -130,6 +130,6 @@ if [ "$more_params" != "" ]; then
 	more_params=", $more_params"
 fi
 
-echo salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_os\": \"${node_os}\", \"node_ip\": \"${node_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$node_cluster\", \"node_hostname\": \"$node_hostname\"${more_params}}"
+salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_os\": \"${node_os}\", \"node_ip\": \"${node_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$node_cluster\", \"node_hostname\": \"$node_hostname\"${more_params}}"
 
 wait_condition_send "SUCCESS" "Instance successfuly started."
