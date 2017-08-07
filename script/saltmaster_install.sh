@@ -1,13 +1,13 @@
 # Required variables:
-#	nodes_os - operating system (centos7, trusty, xenial)
-#	node_hostname - hostname of this node (mynode)
-#	node_domain - domainname of this node (mydomain)
-#	node_cluster - clustername, used to classify this node (virtual_mcp11_k8s)
-#	config_host - IP/hostname of salt-master (192.168.0.1)
+# nodes_os - operating system (centos7, trusty, xenial)
+# node_hostname - hostname of this node (mynode)
+# node_domain - domainname of this node (mydomain)
+# node_cluster - clustername, used to classify this node (virtual_mcp11_k8s)
+# config_host - IP/hostname of salt-master (192.168.0.1)
 #
-#	private_key - SSH private key, used to clone reclass model
-#	reclass_address - address of reclass model (https://github.com/user/repo.git)
-#	reclass_branch - branch of reclass model (master)
+# private_key - SSH private key, used to clone reclass model
+# reclass_address - address of reclass model (https://github.com/user/repo.git)
+# reclass_branch - branch of reclass model (master)
 
 echo "Installing salt master ..."
 aptget_wrapper install -y reclass git
@@ -40,7 +40,18 @@ EOF
 
 echo "Configuring reclass ..."
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts || wait_condition_send "FAILURE" "Failed to scan github.com key."
-git clone -b $reclass_branch --recurse-submodules $reclass_address /srv/salt/reclass || wait_condition_send "ERROR: failed to clone reclass"
+set -e
+if echo $reclass_branch | egrep -q "^refs"; then
+    git clone $reclass_address /srv/salt/reclass
+    cd /srv/salt/reclass
+    git fetch $reclass_address $reclass_branch && git checkout FETCH_HEAD
+    git submodule init
+    git submodule update --recursive
+    cd -
+else
+    git clone -b $reclass_branch --recurse-submodules $reclass_address /srv/salt/reclass
+fi
+set +e
 mkdir -p /srv/salt/reclass/classes/service
 
 mkdir -p /srv/salt/reclass/nodes/_generated
@@ -59,6 +70,19 @@ parameters:
     system:
       name: $node_hostname
       domain: $node_domain
+  reclass:
+    storage:
+      data_source:
+        engine: local
+EOF
+
+node_ip="$(ip a | awk -v prefix="^    inet $network01_prefix[.]" '$0 ~ prefix {split($2, a, "/"); print a[1]}')"
+node_control_ip="$(ip a | awk -v prefix="^    inet $network02_prefix[.]" '$0 ~ prefix {split($2, a, "/"); print a[1]}')"
+cat << EOF > /srv/salt/reclass/classes/cluster/overrides.yml
+parameters:
+  _param:
+    infra_config_address: $node_control_ip
+    infra_config_deploy_address: $node_ip
 EOF
 
 FORMULA_PATH=${FORMULA_PATH:-/usr/share/salt-formulas}
@@ -76,12 +100,27 @@ aptget_wrapper update
 
 [ ! -d /srv/salt/reclass/classes/service ] && mkdir -p /srv/salt/reclass/classes/service
 
-declare -a formula_services=("linux" "reclass" "salt" "openssh" "ntp" "git" "nginx" "collectd" "sensu" "heka" "sphinx" "keystone" "mysql" "grafana" "haproxy" "rsyslog" "horizon" "telegraf" "prometheus")
+declare -a FORMULAS_SALT_MASTER=("linux" "reclass" "salt" "openssh" "ntp" "git" "nginx" "collectd" "sensu" "heka" "sphinx" "keystone" "mysql" "grafana" "haproxy" "rsyslog" "memcached" "horizon" "telegraf" "prometheus" "rabbitmq")
+
+# Source bootstrap_vars for specific cluster if specified.
+for cluster in /srv/salt/reclass/classes/cluster/*/; do
+    if [[ -f "$cluster/bootstrap_vars" ]]; then
+        echo "Sourcing bootstrap_vars for cluster $cluster"
+        source $cluster/bootstrap_vars
+    fi
+done
+
+if [[ -f /srv/salt/reclass/classes/cluster/$cluster_name/.env ]]; then
+    source /srv/salt/reclass/classes/cluster/$cluster_name/.env
+fi
+
+# Patch name of the package for services with _ in name
+FORMULA_PACKAGES=(`echo ${FORMULAS_SALT_MASTER[@]//_/-}`)
 
 echo -e "\nInstalling all required salt formulas\n"
-aptget_wrapper install -y "${formula_services[@]/#/salt-formula-}"
+aptget_wrapper install -y "${FORMULA_PACKAGES[@]/#/salt-formula-}"
 
-for formula_service in "${formula_services[@]}"; do
+for formula_service in "${FORMULAS_SALT_MASTER[@]}"; do
     echo -e "\nLink service metadata for formula ${formula_service} ...\n"
     [ ! -L "/srv/salt/reclass/classes/service/${formula_service}" ] && \
         ln -s ${FORMULA_PATH}/reclass/service/${formula_service} /srv/salt/reclass/classes/service/${formula_service}
@@ -101,11 +140,11 @@ EOF
 echo "Restarting salt-master service ..."
 systemctl restart salt-master || wait_condition_send "FAILURE" "Failed to restart salt-master service."
 
-echo "Running the resto of states ..."
+echo "Running salt master states ..."
 run_states=("linux,openssh" "reclass" "salt.master.service" "salt")
 for state in "${run_states[@]}"
 do
-  salt-call --no-color state.sls "$state" -l info || wait_condition_send "FAILURE" "Salt state $state run failed."
+  salt-call --no-color state.apply "$state" -l info || wait_condition_send "FAILURE" "Salt state $state run failed."
 done
 
 echo "Showing known models ..."
