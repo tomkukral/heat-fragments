@@ -38,7 +38,8 @@ function wait_condition_send() {
       cfn-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
     else
       aws_status="false"
-      cfn-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
+      echo "SHOULD SEND FAILED SIGNAL"
+      #cfn-signal -s "$aws_status" --resource "$aws_resource" --stack "$aws_stack" --region "$aws_region"
       exit 1
     fi
     else
