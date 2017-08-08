@@ -82,14 +82,6 @@ echo "Using Salt version $saltversion"
 echo "Preparing base OS ..."
 case "$node_os" in
     trusty)
-        # workaround for old cloud-init only configuring the first iface
-        iface_config_dir="/etc/network/interfaces"
-        ifaces=$(ip a | awk '/^[1-9]:/ {print $2}' | grep -v "lo:" | rev | cut -c2- | rev)
-
-        for iface in $ifaces; do
-            grep $iface $iface_config_dir &> /dev/null || (echo -e "\nauto $iface\niface $iface inet dhcp" >> $iface_config_dir && ifup $iface)
-        done
-
         which wget > /dev/null || (aptget_wrapper update; aptget_wrapper install -y wget)
 
         echo "deb [arch=amd64] http://apt-mk.mirantis.com/trusty nightly salt extra" > /etc/apt/sources.list.d/mcp_salt.list
@@ -104,9 +96,6 @@ case "$node_os" in
         aptget_wrapper install -y salt-minion
         ;;
     xenial)
-        # workaround for new cloud-init setting all interfaces statically
-        which resolvconf > /dev/null 2>&1 && systemctl restart resolvconf
-
         which wget > /dev/null || (aptget_wrapper update; aptget_wrapper install -y wget)
 
         echo "deb [arch=amd64] http://apt-mk.mirantis.com/xenial nightly salt extra" > /etc/apt/sources.list.d/mcp_salt.list
