@@ -56,8 +56,7 @@ mkdir -p /srv/salt/reclass/classes/service
 
 mkdir -p /srv/salt/reclass/nodes/_generated
 
-cat << 'EOF' > /srv/salt/reclass/nodes/_generated/$node_hostname.$node_domain.yml
-classes:
+echo "classes:
 - cluster.$cluster_name.infra.config
 parameters:
   _param:
@@ -74,16 +73,14 @@ parameters:
     storage:
       data_source:
         engine: local
-EOF
+" > /srv/salt/reclass/nodes/_generated/$node_hostname.$node_domain.yml
 
 node_ip="$(ip a | awk -v prefix="^    inet $network01_prefix[.]" '$0 ~ prefix {split($2, a, "/"); print a[1]}')"
 node_control_ip="$(ip a | awk -v prefix="^    inet $network02_prefix[.]" '$0 ~ prefix {split($2, a, "/"); print a[1]}')"
-cat << EOF > /srv/salt/reclass/classes/cluster/overrides.yml
-parameters:
+echo "parameters:
   _param:
     infra_config_address: $node_control_ip
-    infra_config_deploy_address: $node_ip
-EOF
+    infra_config_deploy_address: $node_ip" > /srv/salt/reclass/classes/cluster/overrides.yml
 
 FORMULA_PATH=${FORMULA_PATH:-/usr/share/salt-formulas}
 FORMULA_REPOSITORY=${FORMULA_REPOSITORY:-deb [arch=amd64] http://apt-mk.mirantis.com/xenial testing salt}
