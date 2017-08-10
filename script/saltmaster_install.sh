@@ -146,5 +146,9 @@ do
   salt-call --no-color state.apply "$state" -l info || wait_condition_send "FAILURE" "Salt state $state run failed."
 done
 
+echo "Syncing modules ..."
+ salt-call saltutils.sync_all
+
 echo "Showing known models ..."
 reclass-salt --top || wait_condition_send "FAILURE" "Reclass-salt command run failed."
+
