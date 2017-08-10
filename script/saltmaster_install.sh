@@ -147,7 +147,7 @@ do
 done
 
 echo "Syncing modules ..."
- salt-call saltutils.sync_all
+salt-call saltutil.sync_all
 
 echo "Showing known models ..."
 reclass-salt --top || wait_condition_send "FAILURE" "Reclass-salt command run failed."
