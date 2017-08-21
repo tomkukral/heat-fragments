@@ -41,15 +41,20 @@ EOF
 echo "Configuring reclass ..."
 ssh-keyscan -H github.com >> ~/.ssh/known_hosts || wait_condition_send "FAILURE" "Failed to scan github.com key."
 set -e
-if echo $reclass_branch | egrep -q "^refs"; then
-    git clone $reclass_address /srv/salt/reclass
-    cd /srv/salt/reclass
-    git fetch $reclass_address $reclass_branch && git checkout FETCH_HEAD
-    git submodule init
-    git submodule update --recursive
-    cd -
+
+if [ ! -d "/srv/salt/reclass" ]; then
+  if echo $reclass_branch | egrep -q "^refs"; then
+      git clone $reclass_address /srv/salt/reclass
+      cd /srv/salt/reclass
+      git fetch $reclass_address $reclass_branch && git checkout FETCH_HEAD
+      git submodule init
+      git submodule update --recursive
+      cd -
+  else
+      git clone -b $reclass_branch --recurse-submodules $reclass_address /srv/salt/reclass
+  fi
 else
-    git clone -b $reclass_branch --recurse-submodules $reclass_address /srv/salt/reclass
+  echo "/srv/salt/reclass/ already exists, skipping clone"
 fi
 set +e
 mkdir -p /srv/salt/reclass/classes/service
