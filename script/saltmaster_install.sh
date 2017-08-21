@@ -103,9 +103,9 @@ declare -a FORMULAS_SALT_MASTER=("linux" "reclass" "salt" "openssh" "ntp" "git" 
 
 # Source bootstrap_vars for specific cluster if specified.
 for cluster in /srv/salt/reclass/classes/cluster/*/; do
-    if [[ -f "$cluster/bootstrap_vars" ]]; then
-        echo "Sourcing bootstrap_vars for cluster $cluster"
-        source $cluster/bootstrap_vars
+    if [[ -f "$cluster_name/bootstrap_vars" ]]; then
+        echo "Sourcing bootstrap_vars for cluster $cluster_name"
+        source $cluster_name/bootstrap_vars
     fi
 done
 
