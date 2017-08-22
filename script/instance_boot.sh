@@ -153,4 +153,13 @@ fi
 
 salt-call event.send "reclass/minion/classify" "{\"node_master_ip\": \"$config_host\", \"node_os\": \"${os_codename}\", \"node_deploy_ip\": \"${node_network01_ip}\", \"node_control_ip\": \"${node_network02_ip}\", \"node_tenant_ip\": \"${node_network03_ip}\", \"node_external_ip\": \"${node_network04_ip}\", \"node_domain\": \"$node_domain\", \"node_cluster\": \"$cluster_name\", \"node_hostname\": \"$node_hostname\"${more_params}}"
 
+
+# dirty hack to install aio stacks
+if [ -f "/srv/salt/reclass/classes/cluster/$cluster_name/install.sh" ]; then
+	echo "Starting installation using model script in 30 seconds"
+	sleep 30
+	/srv/salt/reclass/classes/cluster/$cluster_name/install.sh
+fi
+
+
 wait_condition_send "SUCCESS" "Instance successfuly started."
